@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Review System</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            background-image: url('pxfuel.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #options-container {
+            display: none;
+        }
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .question-container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        #success-message {
+            display: none;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <form id="question-form">
+        <label for="question">Enter Question:</label>
+        <input type="text" id="question" name="question" required>
+
+        <label for="imageQuestion">Add Image to Question:</label>
+        <input type="file" id="imageQuestion" name="imageQuestion" accept="image/*">
+
+        <label for="questionType">Select Question Type:</label>
+        <select id="questionType" name="questionType" required>
+            <option value="yesNo">Yes/No</option>
+            <option value="choose">Multiple Choice</option>
+        </select>
+
+        <div id="options-container">
+            <label for="numOptions">Enter Number of Choices:</label>
+            <input type="number" id="numOptions" name="numOptions" min="2" max="6">
+
+            <div id="choices" style="margin-top: 10px;"></div>
+        </div>
+
+        <button type="button" onclick="addChoices()">Add Choices</button>
+        <button type="button" onclick="removeChoices()">Remove Choices</button>
+
+        <button type="button" onclick="addQuestion()">Add Question</button>
+    </form>
+
+    <button onclick="redirectToQuestions()">Display Questions</button>
+
+    <div id="questions-container"></div>
+
+    <div id="success-message">Your review has been submitted successfully!</div>
+
+</div>
+
+<script>
+    const questionForm = document.getElementById('question-form');
+    const optionsContainer = document.getElementById('options-container');
+    const choicesContainer = document.getElementById('choices');
+    const successMessage = document.getElementById('success-message');
+
+    function toggleOptionsVisibility() {
+        const questionType = document.getElementById('questionType').value;
+        optionsContainer.style.display = (questionType === 'choose') ? 'block' : 'none';
+    }
+
+    document.getElementById('questionType').addEventListener('change', toggleOptionsVisibility);
+
+    function addChoices() {
+        const numOptions = document.getElementById('numOptions').value;
+        choicesContainer.innerHTML = '';
+
+        for (let i = 1; i <= numOptions; i++) {
+            const label = document.createElement('label');
+            label.textContent = `Choice ${i}:`;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = `choice${i}`;
+
+            const imageLabel = document.createElement('label');
+            imageLabel.textContent = `Add Image to Choice ${i}:`;
+
+            const imageInput = document.createElement('input');
+            imageInput.type = 'file';
+            imageInput.name = `imageChoice${i}`;
+            imageInput.accept = 'image/*';
+
+            choicesContainer.appendChild(label);
+            choicesContainer.appendChild(input);
+            choicesContainer.appendChild(imageLabel);
+            choicesContainer.appendChild(imageInput);
+            choicesContainer.appendChild(document.createElement('br'));
+        }
+    }
+
+    function removeChoices() {
+        choicesContainer.innerHTML = '';
+    }
+
+    function addQuestion() {
+        const questionText = document.getElementById('question').value;
+        const questionType = document.getElementById('questionType').value;
+
+        const questionContainer = document.createElement('div');
+        questionContainer.classList.add('question-container');
+
+        const questionTextElement = document.createElement('p');
+        questionTextElement.textContent = `${document.getElementById('questions-container').childElementCount + 1}. ${questionText}`;
+        questionContainer.appendChild(questionTextElement);
+
+        // Check if an image is provided for the question
+        const imageQuestionInput = document.getElementById('imageQuestion');
+        if (imageQuestionInput.files.length > 0) {
+            const imageElement = document.createElement('img');
+            const imageUrl = URL.createObjectURL(imageQuestionInput.files[0]);
+            imageElement.src = imageUrl;
+            questionContainer.appendChild(imageElement);
+        }
+
+        if (questionType === 'yesNo') {
+            const yesNoOptions = ['Yes', 'No'];
+            yesNoOptions.forEach((option) => {
+                const radioInput = createRadioInput(option);
+                questionContainer.appendChild(radioInput);
+                const label = createLabel(option);
+                questionContainer.appendChild(label);
+            });
+        } else if (questionType === 'choose') {
+            const numOptions = document.getElementById('numOptions').value;
+            for (let i = 1; i <= numOptions; i++) {
+                const choiceText = document.querySelector(`input[name=choice${i}]`).value;
+                const radioInput = createRadioInput(choiceText);
+                questionContainer.appendChild(radioInput);
+                const label = createLabel(choiceText);
+                questionContainer.appendChild(label);
+
+                // Check if an image is provided for the choice
+                const imageChoiceInput = document.querySelector(`input[name=imageChoice${i}]`);
+                if (imageChoiceInput.files.length > 0) {
+                    const imageElement = document.createElement('img');
+                    const imageUrl = URL.createObjectURL(imageChoiceInput.files[0]);
+                    imageElement.src = imageUrl;
+                    questionContainer.appendChild(imageElement);
+                }
+            }
+        }
+
+        document.getElementById('questions-container').appendChild(questionContainer);
+
+        questionForm.reset();
+        optionsContainer.style.display = 'none';
+        choicesContainer.innerHTML = '';
+    }
+
+    function createRadioInput(value) {
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'question-options';
+        radioInput.value = value;
+        return radioInput;
+    }
+
+    function createLabel(text) {
+        const label = document.createElement('label');
+        label.textContent = text;
+        return label;
+    }
+
+    function redirectToQuestions() {
+        const newWindow = window.open('', '_blank');
+
+        newWindow.document.write(`
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Questions and Answers</title>
+                <style>
+                    body {
+                        font-family: 'Arial', sans-serif;
+                        margin: 20px;
+                        background-color: #f5f5f5;
+                        background-image: url('pxfuel.jpg');
+                        color: #333;
+                        background-image: url('path/to/your/image.jpg'); /* Replace 'path/to/your/image.jpg' with the actual path to your image */
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                    }
+                    .container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        background-color: #fff;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    }
+                    .question-container {
+                        background-color: #f9f9f9;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                        margin-bottom: 20px;
+                    }
+                    p {
+                        font-size: 18px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                        margin-bottom: 10px;
+                        border-radius: 4px;
+                    }
+                    button {
+                        background-color: #4caf50;
+                        color: white;
+                        padding: 10px 15px;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        transition: background-color 0.3s;
+                    }
+                    button:hover {
+                        background-color: #45a049;
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="questions-container-copy"></div>
+                <button onclick="submitReview()">Submit Review</button>
+            </body>
+            </html>
+        `);
+
+        const questionsContainerCopy = newWindow.document.getElementById('questions-container-copy');
+        questionsContainerCopy.innerHTML = document.getElementById('questions-container').innerHTML;
+
+        newWindow.submitReview = function () {
+            const questionsCopy = newWindow.document.querySelectorAll('.question-container');
+            let isReviewValid = true;
+
+            questionsCopy.forEach((question) => {
+                const selectedAnswer = question.querySelector('input:checked');
+
+                if (!selectedAnswer) {
+                    newWindow.alert("Please answer all questions before submitting.");
+                    isReviewValid = false;
+                    return;
+                }
+            });
+
+            if (isReviewValid) {
+                newWindow.alert("Your review has been submitted successfully!");
+            }
+        };
+    }
+
+    function createRadioInput(value) {
+        const radioInput = document.createElement('input');
+        radioInput.type = 'radio';
+        radioInput.name = 'question-options';
+        radioInput.value = value;
+        return radioInput;
+    }
+
+    function createLabel(text) {
+        const label = document.createElement('label');
+        label.textContent = text;
+        return label;
+    }
+
+    function submitAnswers() {
+        const questions = document.querySelectorAll('.question-container');
+        let isReviewValid = true;
+
+        questions.forEach((question) => {
+            const questionText = question.querySelector('p').textContent;
+            const selectedAnswer = question.querySelector('input:checked');
+
+            if (!selectedAnswer) {
+                alert(`Please answer ${questionText}`);
+                isReviewValid = false;
+                return;
+            }
+
+            console.log(`${questionText} - ${selectedAnswer.value}`);
+        });
+
+        if (isReviewValid) {
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+    }
+</script>
+
+</body>
+</html>
